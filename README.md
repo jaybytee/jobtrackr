@@ -73,3 +73,6 @@ src/app/
 - **Supabase** (auth + PostgreSQL database with RLS)
 - **Chart.js** (analytics charts)
 - **SCSS** (custom design system)
+
+
+Made By RJ
