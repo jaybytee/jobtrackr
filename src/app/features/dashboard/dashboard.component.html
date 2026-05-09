@@ -1,0 +1,200 @@
+<div class="app-layout">
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="brand-icon">⚡</span>
+      <span class="brand-name">JobTrackr</span>
+    </div>
+    <div class="nav-actions">
+      <a routerLink="/analytics" class="nav-link">Analytics ↗</a>
+      <div class="user-info">
+        <span class="user-avatar">{{ userEmail().charAt(0).toUpperCase() }}</span>
+        <span class="user-email">{{ userEmail() }}</span>
+      </div>
+      <button class="sign-out-btn" (click)="signOut()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    @if (jobs$ | async; as jobs) {
+      <!-- STATS BAR -->
+      <div class="stats-bar">
+        
+        <div class="stat-card">
+          <div class="stat-value">{{ getStats(jobs).total }}</div>
+          <div class="stat-label">Total Applied</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value highlight-blue">{{ getStats(jobs).interviews }}</div>
+          <div class="stat-label">Interviews</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value highlight-green">{{ getStats(jobs).offers }}</div>
+          <div class="stat-label">Offers</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value highlight-purple">{{ getStats(jobs).responseRate }}%</div>
+          <div class="stat-label">Response Rate</div>
+        </div>
+        <button class="add-job-btn" (click)="openAddModal()">
+          <span>＋</span> Add Job
+        </button>
+      </div>
+
+      <!-- KANBAN BOARD -->
+      <div class="kanban-board">
+        @for (status of statuses; track status.value) {
+          <div class="kanban-column"
+               [class.drag-over]="dragOverColumn() === status.value"
+               (dragover)="onDragOver($event, status.value)"
+               (drop)="onDrop($event, status.value)">
+            <div class="column-header" [style.border-color]="status.color">
+              <div class="column-title">
+                <span class="col-icon">{{ status.icon }}</span>
+                <span>{{ status.label }}</span>
+              </div>
+              <div class="col-count" [style.background]="status.color + '20'" [style.color]="status.color">
+                {{ getJobsByStatus(jobs, status.value).length }}
+              </div>
+            </div>
+
+            <div class="cards-list">
+              @for (job of getJobsByStatus(jobs, status.value); track job.id) {
+                <div class="job-card"
+                     draggable="true"
+                     [class.dragging]="draggingJobId() === job.id"
+                     (dragstart)="onDragStart(job.id)"
+                     (dragend)="onDragEnd()"
+                     (click)="openEditModal(job)">
+                  <div class="card-top">
+                    <div class="company-name">{{ job.company }}</div>
+                    <button class="delete-btn" (click)="$event.stopPropagation(); showDeleteConfirm.set(job.id)">×</button>
+                  </div>
+                  <div class="role-name">{{ job.role }}</div>
+                  @if (job.location) {
+                    <div class="job-meta">📍 {{ job.location }}</div>
+                  }
+                  @if (job.salary_range) {
+                    <div class="job-meta">💰 {{ job.salary_range }}</div>
+                  }
+                  @if (job.interview_date) {
+                    <div class="interview-badge">🎤 {{ job.interview_date | date:'MMM d' }}</div>
+                  }
+                  <div class="card-footer">
+                    <span class="date-applied">Applied {{ job.date_applied | date:'MMM d, y' }}</span>
+                    @if (job.job_link) {
+                      <a [href]="job.job_link" target="_blank" (click)="$event.stopPropagation()" class="link-btn">↗</a>
+                    }
+                  </div>
+                </div>
+              }
+
+              @if (getJobsByStatus(jobs, status.value).length === 0) {
+                <div class="empty-col">
+                  <span>Drop cards here</span>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (loading$ | async) {
+      <div class="loading">Loading your applications...</div>
+    }
+  </main>
+</div>
+
+<!-- JOB MODAL -->
+@if (showModal()) {
+  <div class="modal-backdrop" (click)="showModal.set(false)">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingJob() ? 'Edit Application' : 'New Application' }}</h2>
+        <button class="modal-close" (click)="showModal.set(false)">×</button>
+      </div>
+
+      <form (ngSubmit)="saveJob()" class="modal-form">
+        <div class="form-row">
+          <div class="field">
+            <label>Company *</label>
+            <input [(ngModel)]="form.company" name="company" placeholder="Google, Meta, etc." />
+          </div>
+          <div class="field">
+            <label>Role *</label>
+            <input [(ngModel)]="form.role" name="role" placeholder="Frontend Engineer" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Status</label>
+            <select [(ngModel)]="form.status" name="status">
+              @for (s of statuses; track s.value) {
+                <option [value]="s.value">{{ s.icon }} {{ s.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Date Applied</label>
+            <input type="date" [(ngModel)]="form.date_applied" name="date_applied" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label>Location</label>
+            <input [(ngModel)]="form.location" name="location" placeholder="Remote, Manila, etc." />
+          </div>
+          <div class="field">
+            <label>Salary Range</label>
+            <input [(ngModel)]="form.salary_range" name="salary_range" placeholder="₱50k–80k/mo" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Job Link</label>
+          <input [(ngModel)]="form.job_link" name="job_link" placeholder="https://..." />
+        </div>
+
+        <div class="field">
+          <label>Interview Date</label>
+          <input type="date" [(ngModel)]="form.interview_date" name="interview_date" />
+        </div>
+
+        <div class="field">
+          <label>Notes</label>
+          <textarea [(ngModel)]="form.notes" name="notes" rows="3" placeholder="Recruiter contact, requirements, etc."></textarea>
+        </div>
+
+        @if (formError()) {
+          <div class="error-msg">{{ formError() }}</div>
+        }
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="showModal.set(false)">Cancel</button>
+          <button type="submit" class="btn-save" [disabled]="formLoading()">
+            {{ formLoading() ? 'Saving...' : (editingJob() ? 'Save Changes' : 'Add Application') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- DELETE CONFIRM -->
+@if (showDeleteConfirm()) {
+  <div class="modal-backdrop" (click)="showDeleteConfirm.set(null)">
+    <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">🗑️</div>
+      <h3>Delete this application?</h3>
+      <p>This action cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn-cancel" (click)="showDeleteConfirm.set(null)">Cancel</button>
+        <button class="btn-delete" (click)="confirmDelete(showDeleteConfirm()!)">Delete</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,36 @@
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <h1>JobTrackr</h1>
+      <p>Track your path to the perfect job</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="auth-form">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" name="email"
+               placeholder="you@example.com" autocomplete="email" required />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="password" name="password"
+               placeholder="••••••••" autocomplete="current-password" required />
+      </div>
+
+      @if (error()) {
+        <div class="error-msg">{{ error() }}</div>
+      }
+
+      <button type="submit" class="btn-primary" [disabled]="loading()">
+        {{ loading() ? 'Signing in...' : 'Sign In' }}
+      </button>
+
+      <div class="auth-links">
+        <a routerLink="/auth/forgot-password">Forgot password?</a>
+        <span>·</span>
+        <a routerLink="/auth/signup">Create account</a>
+      </div>
+    </form>
+  </div>
+</div>
