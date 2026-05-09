@@ -2,6 +2,8 @@
 
 A full-featured job application tracker built with **Angular 17** + **Supabase**.
 
+GitHub Actions is configured to verify that the Angular app builds successfully.
+
 ---
 
 ## 🚀 Getting Started
